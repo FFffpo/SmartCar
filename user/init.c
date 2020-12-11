@@ -21,6 +21,7 @@ void init( void )
         FTM_PWM_QuickInit(FTM0_CH5_PD05, kPWM_EdgeAligned, 3000,0);
         FTM_PWM_QuickInit(FTM0_CH6_PD06, kPWM_EdgeAligned, 3000,0);
         FTM_PWM_QuickInit(FTM0_CH7_PD07, kPWM_EdgeAligned, 3000,0);
+        GPIO_QuickInit(HW_GPIOB, 9 , kGPIO_Mode_OPP);
 	/* ³¡ÖÐ¶Ï */
 	GPIO_QuickInit( HW_GPIOC, 6, kGPIO_Mode_IPU );
 	GPIO_CallbackInstall( HW_GPIOC, GPIO_ISR );

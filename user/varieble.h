@@ -8,13 +8,13 @@
 	
 #define col_num     152	        //摄像头采集列数
 
-#define car_center    80       //车模中心值
+#define car_center    75       //车模中心值
 
 #define P_WIDTH       8         //lp1，和lp2指针的之间宽度
 
 
 #define BW_DELTA      50
-#define whiteRoad     110      //whiteRoad为阈值，小于这个阈值便视为黑色
+#define whiteRoad     180      //whiteRoad为阈值，小于这个阈值便视为黑色
 #define LINE_EDGE 	  2 
 
 #define BLOCK_LEN     20
