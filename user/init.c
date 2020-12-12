@@ -21,7 +21,11 @@ void init( void )
         FTM_PWM_QuickInit(FTM0_CH5_PD05, kPWM_EdgeAligned, 3000,0);
         FTM_PWM_QuickInit(FTM0_CH6_PD06, kPWM_EdgeAligned, 3000,0);
         FTM_PWM_QuickInit(FTM0_CH7_PD07, kPWM_EdgeAligned, 3000,0);
-        GPIO_QuickInit(HW_GPIOB, 9 , kGPIO_Mode_OPP);
+        GPIO_QuickInit(HW_GPIOB, 9 , kGPIO_Mode_OPP); //蜂鸣器
+        GPIO_QuickInit(HW_GPIOB, 20, kGPIO_Mode_IFT);	//SW1初始化
+        GPIO_QuickInit(HW_GPIOB, 21, kGPIO_Mode_IFT);	//SW2初始化
+        GPIO_QuickInit(HW_GPIOB, 22, kGPIO_Mode_IFT);	//SW3初始化
+        GPIO_QuickInit(HW_GPIOB, 23, kGPIO_Mode_IFT);	//SW4初始化
 	/* 场中断 */
 	GPIO_QuickInit( HW_GPIOC, 6, kGPIO_Mode_IPU );
 	GPIO_CallbackInstall( HW_GPIOC, GPIO_ISR );
@@ -62,7 +66,7 @@ void init( void )
 	GPIO_QuickInit( HW_GPIOA, 16, kGPIO_Mode_OPP );
         GPIO_QuickInit( HW_GPIOE, 25, kGPIO_Mode_OPP );
 
-	//UART_QuickInit( UART3_RX_PC16_TX_PC17, 9600 );                /* 串口 */
+	UART_QuickInit( UART3_RX_PC16_TX_PC17, 9600 );                /* 串口 */
 	init_ov7620();                                                  /* 摄像头初始化 */
 	
         OLED_Init();                                                    /* OLED初始化 */
