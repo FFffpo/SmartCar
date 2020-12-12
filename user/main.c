@@ -21,22 +21,23 @@
 #include "upper_monitor.h"
 #include "oled.h"
 
-//阈值、路宽、正常过弯道时间、环岛相邻丢线时间差、环岛手调、出入库手调
+//阈值、路宽、环岛手调、出入库手调
 //4出库、3环岛、2入库
 
 //static void PIT0_CallBack(void);
 int degree_calculation(void);
 float RoadWidth(void);
+int park(void);
 
-int lastcardegree=0;
+//int lastcardegree=0;
 int k;
-float mid_k;
 int flag=0,flag1=0,flag2=0;
-int t=0,t1=0,t2=0;
+int first_left=0;
 int motor=0;
+
 int roadwidth=120;
+
 float current_roadwidth;
-int var[4]={1,2,3,4};
 
 int main()
 {
@@ -45,6 +46,7 @@ int main()
   init();
   flag=0;
   flag1=0;
+  first_left=0;
   motor=0;
   PBout(9)=0;
   //电机接口
@@ -71,101 +73,83 @@ int main()
     
     current_roadwidth=RoadWidth();
     
-    if (PBin(21)==1 && current_roadwidth <= roadwidth/4 && current_roadwidth >= 5)
+    if (PBin(21)==1 && park()==1)
     {
       //手动入库
+      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
+      SYSTICK_DelayMs(900);
+      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 0);      
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0);
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 1200);      
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 1200);
+      SYSTICK_DelayMs(200);
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 0);      
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 0);
       motor=0;
+      PBout(9)=0;
     }
     
-    if (PBin(22)==1 && flag==0 && motor==1)
+    if (PBin(22)==1 && first_left==1 && flag==0 && motor==1)
     {
       
       if(flag1==0 && current_roadwidth >= roadwidth+10)
       {
-        //t1=SYSTICK_GetVal();
         PBout(9)=1;
         flag1=1;
       }
       
-      //t=SYSTICK_GetVal();
       
-      if (flag1==1 && current_roadwidth <= roadwidth)
+      if (flag1==1 && current_roadwidth <= roadwidth+5)
       {
         flag2=1;
+        PBout(9)=0;
       }
 
-      if(flag1==1 && flag2==1 && current_roadwidth >= roadwidth+20)
+      if(flag1==1 && flag2==1 && current_roadwidth >= roadwidth+15)
       {
+        PBout(9)=1;
         
-        //t2=SYSTICK_GetVal();
-        PBout(9)=0;
-        //if (t2-t1<=2500)
-        //{
-          flag=1;
-          PBin(9)=1;
-          FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1290);
-          SYSTICK_DelayMs(3600);
-      
-       
-        //}
-      
-        /*else
-        {
-          flag1=1;
-          t1=t2;
-        }*/
+        flag=1;
+        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1300);
+        SYSTICK_DelayMs(3400);
+   
       }
     }
-   
-    /*if (flag==1 && current_roadwidth >= roadwidth+20)
-    {
-      SYSTICK_DelayMs(800);
-    }*/
     
     k=degree_calculation();
+    
+    if (k > 70)
+    {
+      first_left=1;
+    }
  
     FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200 + k);
     //////////调车OLED//////////////////////
     OLED_ShowNum_1206(80,20,Midx[20],1);   
     OLED_ShowNum_1206(0,20,k,1);
     OLED_ShowNum_1206(80,40,current_roadwidth,1);  
-    OLED_ShowNum_1206(0,40,t2-t1,1);
     ///////////////////////////////////////
     
     OLED_Refresh_Gram();
     
-    //////////调车蓝牙///////////////////////
-    var[0]=Midx[20];
-    var[1]=k;
-    var[2]= (int) current_roadwidth;
-    if (t2-t1 < 0)
-    {
-      var[3]= 50;
-    }
-    else
-    {
-      var[3]=t2-t1;
-    }
-    vcan_sendware((uint8_t *)var,sizeof(var));
-    //////////////////////////////////////////
     if(PBin(16)==1)
     {
       motor=1;
       flag=0;
       flag1=0;
+      first_left=0;
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1200);  
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1200);
       if (PBin(23)==1)
       {
         //手动出库
         FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-        SYSTICK_DelayMs(800);
-        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
-        SYSTICK_DelayMs(1250);
-        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
         SYSTICK_DelayMs(400);
+        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
+        SYSTICK_DelayMs(1100);
+        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
+        SYSTICK_DelayMs(100);
       }
       
     }
@@ -174,6 +158,7 @@ int main()
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 0);      
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
       motor=0;
+      PBout(9)=0;
     }
   }
 
@@ -195,24 +180,17 @@ int degree_calculation(void)
     //中线倾斜度计算
     for ( i = 1; i <= 15; i++ )
     {
-      	if((Midx[45-i] - Midx[45-i-1] < 6) && (Midx[45-i] - Midx[45-i-1] > -6))
-        	InclineValue = InclineValue + (Midx[45-i] - Midx[45-i-2]);	//用差分方法求解中线倾斜度
+      	if((Midx[50-i] - Midx[50-i-1] < 15) && (Midx[50-i] - Midx[50-i-1] > -15))
+        	InclineValue = InclineValue + (Midx[50-i] - Midx[50-i-2]);	//用差分方法求解中线倾斜度
     }
     //偏移量计算
     for ( i = 1; i <= 8; i++ )
     {
-        ExcursionValue = ExcursionValue + (Midx[45-i] - car_center);	//用差分法求解总偏移值
+        ExcursionValue = ExcursionValue + (Midx[50-i] - car_center);	//用差分法求解总偏移值
     } 
-     //OLED_ShowNum_1206(80,20,InclineValue,1);
-     //OLED_ShowNum_1206(80,40,ExcursionValue,1);
     cardegree = (int)(InclineValue*3.3156 - 0.2388*ExcursionValue);
     if (cardegree>120) cardegree=120;
     if (cardegree<-120) cardegree=-120;
-/*    if((cardegree-lastcardegree<50)&&(cardegree-lastcardegree>-50))
-    {
-      return lastcardegree;
-    }
-    lastcardegree=cardegree;*/
     return cardegree;
 }
 
@@ -227,4 +205,30 @@ float RoadWidth(void)
   ml/=3;
   mr/=3;
   return (ml-mr);
+}
+
+int park(void)
+{
+  int num=0;
+  for (int i=150; i>=3; )
+  {
+    do
+    {
+      i--;
+    }while(imgadd[20* col_num + i] < whiteRoad );
+    do
+    {
+      i--;
+    }while(imgadd[20* col_num + i] > whiteRoad );
+    num+=1;
+  }
+  
+  if (num > 8)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
