@@ -25,17 +25,18 @@
 //4出库、3环岛、2入库
 
 //static void PIT0_CallBack(void);
-int degree_calculation(void);
+int degree_calculation(int start);
 float RoadWidth(void);
 int park(void);
 
 //int lastcardegree=0;
 int k;
+int k_far;
 int flag=0,flag1=0,flag2=0;
 int first_left=0;
 int motor=0;
 
-int roadwidth=120;
+int roadwidth=110;
 
 float current_roadwidth;
 
@@ -61,7 +62,8 @@ int main()
   //改变舵机占空比，1200是中间位置，1080向右打死，1320向左打死
   FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
 
-  
+  FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 0);      
+  FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
   while(1)
   {
  
@@ -76,16 +78,20 @@ int main()
     if (PBin(21)==1 && park()==1)
     {
       //手动入库
-      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
-      SYSTICK_DelayMs(900);
       FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
+      SYSTICK_DelayMs(150);
+
+      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
+      SYSTICK_DelayMs(800);
+
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 0);      
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 1200);      
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 1200);
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 1500);      
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 1500);
       SYSTICK_DelayMs(200);
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 0);      
       FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 0);
+      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
       motor=0;
       PBout(9)=0;
     }
@@ -106,18 +112,43 @@ int main()
         PBout(9)=0;
       }
 
-      if(flag1==1 && flag2==1 && current_roadwidth >= roadwidth+15)
+      if(flag1==1 && flag2==1 && current_roadwidth >= roadwidth+16)
       {
         PBout(9)=1;
         
         flag=1;
+        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
+        SYSTICK_DelayMs(150);
         FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1300);
-        SYSTICK_DelayMs(3400);
+        SYSTICK_DelayMs(2800);
    
       }
     }
     
-    k=degree_calculation();
+    if (flag==1)
+    {
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1000);      
+      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1000);
+    }
+    
+    k=degree_calculation(45);
+    /*k_far=degree_calculation(30);
+    
+    ///调速//////////////////////////////
+    if (motor==1 && flag==1)
+    {
+      if (k_far <= 30 && k_far >=-30 && k <= 30 && k >= -30)
+      {
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1800);      
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1800); 
+      }
+      else
+      {
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1100);      
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1100); 
+      }
+    }*/
+    //////////////////////////////////////
     
     if (k > 70)
     {
@@ -144,12 +175,17 @@ int main()
       if (PBin(23)==1)
       {
         //手动出库
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1100);  
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1100);
+        
         FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-        SYSTICK_DelayMs(400);
+        SYSTICK_DelayMs(500);
         FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
-        SYSTICK_DelayMs(1100);
-        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-        SYSTICK_DelayMs(100);
+        SYSTICK_DelayMs(1250);
+        //FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
+        //SYSTICK_DelayMs(100);
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1200);  
+        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1200);
       }
       
     }
@@ -169,7 +205,7 @@ int main()
   
 }*/
 
-int degree_calculation(void)
+int degree_calculation(int start)
 {
 	uint16_t i = 0;
         
@@ -180,13 +216,13 @@ int degree_calculation(void)
     //中线倾斜度计算
     for ( i = 1; i <= 15; i++ )
     {
-      	if((Midx[50-i] - Midx[50-i-1] < 15) && (Midx[50-i] - Midx[50-i-1] > -15))
-        	InclineValue = InclineValue + (Midx[50-i] - Midx[50-i-2]);	//用差分方法求解中线倾斜度
+      	if((Midx[start-i] - Midx[start-i-1] < 24) && (Midx[start-i] - Midx[start-i-1] > -24))
+        	InclineValue = InclineValue + (Midx[start-i] - Midx[start-i-2]);	//用差分方法求解中线倾斜度
     }
     //偏移量计算
     for ( i = 1; i <= 8; i++ )
     {
-        ExcursionValue = ExcursionValue + (Midx[50-i] - car_center);	//用差分法求解总偏移值
+        ExcursionValue = ExcursionValue + (Midx[start-i] - car_center);	//用差分法求解总偏移值
     } 
     cardegree = (int)(InclineValue*3.3156 - 0.2388*ExcursionValue);
     if (cardegree>120) cardegree=120;
@@ -197,7 +233,7 @@ int degree_calculation(void)
 float RoadWidth(void)
 {
   float ml=0,mr=0;
-  for (int i=25;i<=27;i++)
+  for (int i=11;i<=13;i++)
   {
     ml+=Lx[i];
     mr+=Rx[i];
@@ -215,11 +251,11 @@ int park(void)
     do
     {
       i--;
-    }while(imgadd[20* col_num + i] < whiteRoad );
+    }while(imgadd[5* col_num + i] < whiteRoad );
     do
     {
       i--;
-    }while(imgadd[20* col_num + i] > whiteRoad );
+    }while(imgadd[5* col_num + i] > whiteRoad );
     num+=1;
   }
   

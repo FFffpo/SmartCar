@@ -146,7 +146,7 @@
                 <RecentlyUsedMenus>1</RecentlyUsedMenus>
                 <MenuShadows>1</MenuShadows>
                 <ShowAllMenusAfterDelay>1</ShowAllMenusAfterDelay>
-                <CommandsUsage>A600000004000C8100001900000000810000020000000E81000051000000468100003B000000</CommandsUsage>
+                <CommandsUsage>E000000004000C8100001900000000810000020000000E810000510000004681000075000000</CommandsUsage>
             </MFCToolBarParameters>
             <CommandManager>
                 <CommandsWithoutImages>0000</CommandsWithoutImages>
