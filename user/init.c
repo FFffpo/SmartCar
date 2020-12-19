@@ -14,6 +14,7 @@
 #include "sysinit.h"
 #include "DEV_SCCB.h"
 #include "oled.h"
+#include "uart.h"
 /* 初始化 */
 void init( void )
 {
@@ -49,6 +50,12 @@ void init( void )
         
         GPIO_QuickInit(HW_GPIOB, 16, kGPIO_Mode_IFT); // BUTTON1 
         GPIO_QuickInit(HW_GPIOB, 10, kGPIO_Mode_IFT); // BUTTON2 
+        
+        FTM_QD_QuickInit(FTM1_QD_PHA_PB00_PHB_PB01, kFTM_QD_NormalPolarity, kQD_PHABEncoding);//AB相编码器1初始化   P3
+        
+        LPTMR_PC_QuickInit(LPTMR_ALT2_PC05);//编码器2初始化   P5
+        GPIO_QuickInit(HW_GPIOC, 4, kGPIO_Mode_IFT); //编码器2初始化 IO口读方向  P5
+        
         //adc
         ADC_QuickInit(ADC1_SE4B_PC8, kADC_SingleDiff12or13);
         
@@ -67,6 +74,8 @@ void init( void )
         GPIO_QuickInit( HW_GPIOE, 25, kGPIO_Mode_OPP );
 
 	UART_QuickInit( UART3_RX_PC16_TX_PC17, 9600 );                /* 串口 */
+        //UART_CallbackRxInstall(HW_UART3,UART3_RX_IRQHandler);//蓝牙接收中断
+        //UART_ITDMAConfig(HW_UART3, kUART_IT_Rx, true);//蓝牙接收中断
 	init_ov7620();                                                  /* 摄像头初始化 */
 	
         OLED_Init();                                                    /* OLED初始化 */

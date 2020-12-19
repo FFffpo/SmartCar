@@ -21,6 +21,8 @@
 #include "upper_monitor.h"
 #include "oled.h"
 
+uint8_t var[4]={1,2,3,4};
+
 //阈值、路宽、环岛手调、出入库手调
 //4出库、3环岛、2入库
 
@@ -28,6 +30,7 @@
 int degree_calculation(int start);
 float RoadWidth(void);
 int park(void);
+void Speed_Measure(void);
 
 //int lastcardegree=0;
 int k;
@@ -39,6 +42,9 @@ int motor=0;
 int roadwidth=110;
 
 float current_roadwidth;
+
+int16_t RightCadence=0,LeftCadence=0;
+uint8_t RightDir=0,LeftDir=0;
 
 int main()
 {
@@ -54,10 +60,10 @@ int main()
   //4(L) 7(R) R
   //5(L) 6(R) F
   
-  /*PIT_QuickInit(HW_PIT_CH0,1000000);
-  PIT_CallbackInstall(HW_PIT_CH0, PIT0_CallBack);
+  
+  PIT_QuickInit(HW_PIT_CH0, 100000);		//100msPIT定时中断 测速
+  PIT_CallbackInstall(HW_PIT_CH0, Speed_Measure);
   PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF,ENABLE);
-  EnableInterrupts;*/
   
   //改变舵机占空比，1200是中间位置，1080向右打死，1320向左打死
   FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
@@ -66,7 +72,7 @@ int main()
   FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
   while(1)
   {
- 
+    
     searchline_OV7620();
     
     
@@ -159,8 +165,18 @@ int main()
     //////////调车OLED//////////////////////
     OLED_ShowNum_1206(80,20,Midx[20],1);   
     OLED_ShowNum_1206(0,20,k,1);
-    OLED_ShowNum_1206(80,40,current_roadwidth,1);  
-    ///////////////////////////////////////
+    OLED_ShowNum_1206(80,30,current_roadwidth,1); 
+    OLED_ShowNum_1206(0,37,LeftCadence,1);
+    OLED_ShowNum_1206(80,37,RightCadence,1);
+    OLED_ShowNum_1206(0,48,LeftDir,1);
+    OLED_ShowNum_1206(80,48,RightDir,1);
+    /////////////调车蓝牙//////////////////////
+    var[0]=LeftCadence;
+    var[1]=RightCadence;
+    var[2]=LeftDir;
+    var[3]=RightDir;
+    vcan_sendware((uint8_t *)var,sizeof(var));
+    /////////////////////////////////////////
     
     OLED_Refresh_Gram();
     
@@ -267,4 +283,31 @@ int park(void)
   {
     return 0;
   }
+}
+
+//1正向,0负向
+void Speed_Measure()
+{
+
+  FTM_QD_GetData(HW_FTM1, &LeftCadence, &LeftDir);//读取编码器1脉冲计数值   返回的数据已经有正负    编码器顺时针转时为正，逆时针转时为负
+  FTM_QD_ClearCount(HW_FTM1);//读取编码器1脉冲计数值 
+  LeftCadence/=50;
+  if (LeftCadence<0)
+  {
+    LeftCadence=-LeftCadence;
+  }
+
+  RightCadence=LPTMR_PC_ReadCounter();//读取编码器2脉冲计数值 
+  LPTMR_ClearCounter();//清0编码器2的脉冲计数值
+  RightCadence/=10;
+    
+  if(PCin(4)==1)//编码器顺时针转时为正，逆时针转时为负
+  {
+    RightDir=1;
+   }
+  else
+  {
+    RightDir=0;
+   }
+
 }

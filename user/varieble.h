@@ -14,7 +14,7 @@
 
 
 #define BW_DELTA      50
-#define whiteRoad     140      //whiteRoad为阈值，小于这个阈值便视为黑色
+#define whiteRoad     180      //whiteRoad为阈值，小于这个阈值便视为黑色
 #define LINE_EDGE 	  2 
 
 #define BLOCK_LEN     20
