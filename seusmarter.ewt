@@ -2489,6 +2489,12 @@
             <name>$PROJ_DIR$\user\oled.c</name>
         </file>
         <file>
+            <name>$PROJ_DIR$\user\pid.c</name>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\user\pid.h</name>
+        </file>
+        <file>
             <name>$PROJ_DIR$\user\sysinit.c</name>
         </file>
         <file>

@@ -15,7 +15,7 @@
 
 void searchline_OV7620( void )
 {
-	int	CurL		= 0, Start = 0;                                                                                                                                                         /* CurL  当前行   Start 开始扫线的行  第一行从0开始 */
+	int	CurL;		// Start = 0;                                                                                                                                                         /* CurL  当前行   Start 开始扫线的行  第一行从0开始 */
 	int	Cur_Offset	= car_center;                                                                                                                                                           /* 初始扫线中心为80，此变量为当前行中心 */
 
 	int CurPoint = Cur_Offset;                                                                                                                                                                      /* CurPoint为当前正在扫描的点 */
@@ -23,7 +23,7 @@ void searchline_OV7620( void )
  * 注意：右下角为（0,0）
  * ====================按行扫描左右线===============================
  */
-	for ( CurL = Start; CurL < row_num; ++CurL )
+	for ( CurL = row_num-1; CurL >=0; --CurL )
 	{
 		CurPoint = Cur_Offset;                                                                                                                                                                  /* CurPoint在每一行开始时为中点 */
 		/*
@@ -77,10 +77,11 @@ unsigned char display_col[158] = { 0,	0,   1,	  2,   3,   4,	 4,   5,   6,	7,   
 				   105, 106, 106, 107, 108, 109, 110, 110, 111, 112, 113, 114, 115,
 				   115, 116, 117, 118, 119, 119, 120, 121, 122, 123, 123, 124, 125, 126, 127 };
 
+
 void dispimage( void )
 {
 	uint16_t	i	= 0, j = 0;
-	uint16_t	state	= 0;
+	
 
 
 	/*
@@ -93,9 +94,9 @@ void dispimage( void )
 		{
 			if ( imgadd[i * col_num + j] > whiteRoad )
 			{
-				OLED_DrawPoint( display_col[j], i + 14, 1 );
+				OLED_DrawPoint( display_col[j], i , 1 );
 			}else {
-				OLED_DrawPoint( display_col[j], i + 14, 0 );
+				OLED_DrawPoint( display_col[j], i , 0 );
 			}
 		}
 	}
@@ -106,17 +107,17 @@ void dispimage( void )
 /* 显示找到的边线 */
 void dispimage1( void )
 {
-	uint16_t	i	= 0, j = 0;
-	uint16_t	state	= 0;
+	uint16_t	i	= 0;//j = 0;
+	
 
 
 	/*
 	 * OLED_Clear();
 	 * 使用OLED画出摄像头的图像
 	 */
-	for ( i = 0; i < row_num; i++ )
+for ( i = 0; i < row_num; i++ )
 	{
-		for ( j = 0; j < col_num; j++ )
+/*			for ( j = 0; j < col_num; j++ )
 		{
 			if ( imgadd[i * col_num + j] > whiteRoad )
 			{
@@ -126,7 +127,7 @@ void dispimage1( void )
 			}
 		}
 
-
+*/
 		/* 画出找到的边界线 */
 		if ( Lx[i] != col_num && Lx[i] > 0 )
 			OLED_DrawPoint( display_col[Lx[i]], i + 14, 1 );
