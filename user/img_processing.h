@@ -7,6 +7,7 @@
 void searchline_OV7620(void);
 void dispimage(void);
 void dispimage1(void);
+float curvature(void);
 
 extern int DX[150];
 

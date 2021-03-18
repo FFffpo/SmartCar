@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @author  ZhifeiWang
- * @version V1.0.1
- * @date    2021.3.13
+ * @author  
+ * @version V1.0.0
+ * @date    2020.3.18
  * @brief   光电组C
  ******************************************************************************
  */
@@ -21,21 +21,21 @@
 #include "upper_monitor.h"
 #include "oled.h"
 #include "pid.h"
-
 int8_t var[4]={1,2,3,4};
 
-//阈值、路宽、环岛手调、出入库手调
 //4出库、3环岛、2入库
+//Lx 是右线 Rx是左线
 
 int degree_calculation(int start);
 int park(void);
 void Speed_Measure(void);
 
-int k,k_far;
-int kR1,kR2,kL1,kL2;
+float curv=0;
+
+int k=0;
+int startline=45;
 int motor=0;
 float theta=0;
-
 int16_t RightCadence=0,LeftCadence=0;
 uint8_t RightDir=0,LeftDir=0;
 PID_type Left_Motor;
@@ -45,10 +45,13 @@ int16_t Tarspeed=0;
 int dif=0;
 int16_t Left_duty=800;
 int16_t Right_duty=800;
+int cur_park=0, pre_park=0;
+
+int flag_in=0;
 
 int main()
 {
-  
+
   DisableInterrupts;
   init();
   FTM_QD_ClearCount(HW_FTM1);
@@ -57,13 +60,14 @@ int main()
   PID_Init(&Left_Motor);
   PID_Init(&Right_Motor);
   
-  Left_Motor.Kp = 55;
-  Left_Motor.Ki = 29;
-  Left_Motor.Kd = 10;
+  Left_Motor.Kp = 12;
+  Left_Motor.Ki = 6;
+  Left_Motor.Kd = 0.5;
   
-  Right_Motor.Kp = 43;
-  Right_Motor.Ki = 18;
-  Right_Motor.Kd = 6;
+  Right_Motor.Kp = 12;
+  Right_Motor.Ki = 6;
+  Right_Motor.Kd = 0.5;
+  
   motor=0;
   //电机接口
   //4(L) 7(R) R
@@ -72,7 +76,7 @@ int main()
   PIT_QuickInit(HW_PIT_CH0, 50000);		//50msPIT定时中断 测速
   PIT_CallbackInstall(HW_PIT_CH0, Speed_Measure);
   PIT_ITDMAConfig(HW_PIT_CH0, kPIT_IT_TOF,ENABLE);
-  
+
   
   //改变舵机占空比，1200是中间位置，1080向右打死，1320向左打死
   FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
@@ -81,105 +85,113 @@ int main()
   FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
   
   EnableInterrupts;
+
   
   while(1)
   {
-    searchline_OV7620();
-    k=degree_calculation(37);
-    k_far=degree_calculation(18);
-    FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200 + k);
-   //dispimage1();//展示处理后的边线，将图像显示在OLED上
+ 
+  searchline_OV7620();//巡线函数
+  k=degree_calculation(startline);
+  if (flag_in==1)
+  {
+    k=-120;
+  }
+  FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200 + k);
+    
+    //dispimage1();//展示处理后的边线，将图像显示在OLED上
     dispimage();//展示二值图像，无边线处理
+    //curv=curvature()*10;
     if (motor==1)
     {
-      if ( k<40 && k>-40 && k_far>-60 && k_far<60 )
+      
+      if ( k<=35 && k>=-35 )
       {
-        Tarspeed=55;
+        Tarspeed=40;
+        startline=20;
       }
       else
       {
-        Tarspeed=40;
+        Tarspeed=30;
+        startline=40;
       }
     }
-    
+
     //////////调车OLED//////////////////////
-    OLED_ShowNum_1206(80,20,Midx[20],1);   
-    OLED_ShowNum_1206(0,20,theta,1);
+    /*OLED_ShowNum_1206(80,20,Midx[30],1); 
+    OLED_ShowNum_1206(0,20,k,1);
     OLED_ShowNum_1206(0,37,LeftCadence,1);
-    OLED_ShowNum_1206(80,37,RightCadence,1);
-    OLED_ShowNum_1206(0,48,k,1);
-    OLED_ShowNum_1206(80,48,k_far,1);
+    OLED_ShowNum_1206(80,37,RightCadence,1);*/
+    OLED_ShowNum_1206(0,48,Midx[30],1);
     OLED_Refresh_Gram();
-    //入库
-    if (PBin(21)==1 && park()==1)
-    {
-      DisableInterrupts;
-      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-      SYSTICK_DelayMs(150);
-
-      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
-      SYSTICK_DelayMs(800);
-
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 0);      
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 0); 
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 1500);      
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 1500);
-      SYSTICK_DelayMs(200);
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH4, 0);      
-      FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH7, 0);
-      FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-      motor=0;
-    }
-    /*
-    //进入环岛
-    if (PBin(22)==1)
-    {
-      
-    }
-    */
     /////////////调车蓝牙//////////////////////
-    var[0]=LeftCadence;
-    var[1]=RightCadence;
+    /*
+    var[0]=Lx[20];
+    var[1]=Rx[20];
     var[2]=k;
-    var[3]=k_far;
-    vcan_sendware((int8_t *)var,sizeof(var));
+    var[3]=curv;
+    vcan_sendware((int8_t *)var,sizeof(var));*/
     /////////////////////////////////////////
     
+    //发车
     if(PBin(16)==1)
     {
       motor=1;
       EnableInterrupts;
-      Tarspeed=0;
       Left_duty=800;
       Right_duty=800;
       
-      //手动出库
-      if (PBin(23)==1)
+      flag_in=0;
+    }
+    //停车
+    if(PBin(10)==1)
+    {
+       Tarspeed=0;     
+       motor=0;
+    }
+    //出库
+    if (motor==1 && PBin(23)==1)
+    {
+
+    }
+    //入库
+    if (PBin(21)==1)
+    {
+      if (flag_in==0)
       {
-        DisableInterrupts;
-        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1100);  
-        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1100);
-        
-        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1200);
-        SYSTICK_DelayMs(500);
-        FTM_PWM_ChangeDuty(HW_FTM2, HW_FTM_CH0, 1080);
-        SYSTICK_DelayMs(1250);
-        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5, 1200);  
-        FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6, 1200);
-        EnableInterrupts;
+        pre_park=cur_park;
+        cur_park=park();
+      
+        if (cur_park==1)
+        {
+          Tarspeed=10;
+          motor=0;
+        }
+      
+        if (cur_park==0 && pre_park==1)
+        {
+          flag_in=1;
+          startline=20;
+        }
+        }
+      else
+      {
+        /*if (horizontal_line()==1)
+        {
+          Tarspeed=0;
+        }*/
       }
+    }
+    //进入环岛
+   
+    if (PBin(22)==1)
+    {
+      curv=curvature();
       
     }
-    // 停车
-    if(PBin(10)==1)
-    {     
-      Tarspeed=0;     
-      motor=0;
-    }
-
+    
   }
-}
 
+}
 
 int degree_calculation (int start)
 {
@@ -192,20 +204,23 @@ int degree_calculation (int start)
     //中线倾斜度计算
   for ( i = 1; i <= 15; i++ )
     {
-      	if((Midx[start-i] - Midx[start-i-1] < 24) && (Midx[start-i] - Midx[start-i-1] > -24))
+      	if((Midx[start-i] - Midx[start-i-1] < 8) && (Midx[start-i] - Midx[start-i-1] > -8))
         	InclineValue = InclineValue + (Midx[start-i] - Midx[start-i-2]);	//用差分方法求解中线倾斜度
     }
     //偏移量计算
-    for ( i = 1; i <= 10; i++ )
+    for ( i = 1; i <= 8; i++ )
     {
         ExcursionValue = ExcursionValue + (Midx[start-i] - car_center);	//用差分法求解总偏移值
     } 
-    cardegree = (int)(InclineValue*3.3156 - 0.2388*ExcursionValue);
+    cardegree = (int)(InclineValue*2.76 - 0.2*ExcursionValue);
+    
+  
     if (cardegree>120) cardegree=120;
     if (cardegree<-120) cardegree=-120;
+    
+    if ((Rx[10]<10 && Lx[10]>142) || (Rx[15]<10 && Lx[15]>142) || (Rx[20]<10 && Lx[20]>142) ||(Rx[25]<10 && Lx[25]>142)||(Rx[30]<10 && Lx[30]>142)|| (Rx[35]<10 && Lx[35]>142) ||(Rx[40]<10 && Lx[40]>142) ) cardegree=-20;
     return cardegree;
 }
-
 
 int park(void)
 {
@@ -215,15 +230,15 @@ int park(void)
     do
     {
       i--;
-    }while(imgadd[5* col_num + i] < whiteRoad );
+    }while(imgadd[3* col_num + i] < whiteRoad );
     do
     {
       i--;
-    }while(imgadd[5* col_num + i] > whiteRoad );
+    }while(imgadd[3* col_num + i] > whiteRoad );
     num+=1;
   }
   
-  if (num > 8)
+  if (num > 6)
   {
     return 1;
   }
@@ -258,8 +273,9 @@ void Speed_Measure()
     RightDir=0;
    }
   
-  theta=k/120*0.7;
-  dif=(int)Tarspeed*0.4*tanf(theta);
+  theta=k*0.00583;
+ 
+  dif=(int)Tarspeed*0.5*tanf(theta);
   
   Left_Motor.Tarspeed=Tarspeed-dif;
   Right_Motor.Tarspeed=Tarspeed+dif;
@@ -276,5 +292,5 @@ void Speed_Measure()
   if (Right_duty<0)Right_duty=0;
   FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH5,Left_duty);
   FTM_PWM_ChangeDuty(HW_FTM0, HW_FTM_CH6,Right_duty);
-}
 
+}

@@ -8,13 +8,13 @@
 	
 #define col_num     152	        //摄像头采集列数
 
-#define car_center    74      //车模中心值
+#define car_center    70     //车模中心值
 
 #define P_WIDTH       8         //lp1，和lp2指针的之间宽度
 
 
 #define BW_DELTA      50
-#define whiteRoad     160      //whiteRoad为阈值，小于这个阈值便视为黑色
+#define whiteRoad     130      //whiteRoad为阈值，小于这个阈值便视为黑色
 #define LINE_EDGE 	  2 
 
 #define BLOCK_LEN     20
@@ -39,6 +39,7 @@ extern uint8_t* R_End;
 extern const uint8_t offset[ ];
 extern float number;
 
-extern uint32_t flashData[flashInfoNum]  ;
+extern uint32_t flashData[flashInfoNum];
+
 
 #endif 

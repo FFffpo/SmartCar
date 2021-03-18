@@ -1,9 +1,8 @@
 
 #include "varieble.h"
 #include "img_processing.h"
-
+//#include <math.h>
 #include "oled.h"
-
 
 /*
  * @name		searchline_OV7620
@@ -137,4 +136,34 @@ for ( i = 0; i < row_num; i++ )
 	OLED_Refresh_Gram();
 }
 
+float curvature(void)
+{
+  float cur=0;
+  int x1,x2,x3,y1,y2,y3;
+  float k1,k2;
+  float dis,dis1,dis2,dis3,cosA;
+  y1=35;
+  y2=30;
+  y3=25;
+  x1=Lx[y1];
+  x2=Lx[y2];
+  x3=Lx[y3];
+  
+  if (x1==x2 && x2==x3) return 0;
+  else
+  {
+    k1=1.0*(y2-y1)/(x2-x1);
+    k2=1.0*(y3-y2)/(x3-x2);
+    if (k1==k2) return 0;
+  }
+  dis1=sqrt( (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+  dis2=sqrt( (x1-x3)*(x1-x3)+(y1-y3)*(y1-y3));
+  dis3=sqrt( (x2-x3)*(x2-x3)+(y2-y3)*(y2-y3));
+  
+  dis=dis2*dis2+dis3*dis3-dis1*dis1;
+  cosA=dis/(2*dis2*dis3);
+  cur=1/(0.5*dis1/cosA);
+  return cur;
+  
+}
 
